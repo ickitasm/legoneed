@@ -207,11 +207,18 @@ async function loadNotes() {
 }
 
 async function loginGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.origin
+    console.log("Tombol Google berhasil ditekan!"); // Ini untuk mengetes respons
+    try {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin
+            }
+        });
+        if (error) {
+            alert("Error Google Login: " + error.message);
         }
-    });
-    if (error) alert("Error Google Login: " + error.message);
+    } catch (err) {
+        alert("Terjadi kesalahan sistem: " + err.message);
+    }
 }
