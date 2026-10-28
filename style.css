@@ -1,0 +1,132 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding-bottom: 30px;
+}
+
+header {
+    padding: 16px;
+    background-color: #1e293b;
+    text-align: center;
+    border-bottom: 1px solid #334155;
+}
+
+#user-status {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.nav-tabs {
+    display: flex;
+    background-color: #1e293b;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 8px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-btn.active {
+    color: #38bdf8;
+    border-bottom-color: #38bdf8;
+}
+
+.container {
+    padding: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.module {
+    display: none;
+}
+
+.module.active {
+    display: block;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #1e293b;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background-color: #0f172a;
+    color: #fff;
+}
+
+.btn-primary {
+    background-color: #0284c7;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.card {
+    background-color: #1e293b;
+    padding: 14px;
+    border-radius: 8px;
+    border-left: 4px solid #38bdf8;
+}
+
+.card.overdue {
+    border-left-color: #ef4444;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.btn-action {
+    background-color: #334155;
+    color: #fff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
