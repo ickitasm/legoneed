@@ -6,78 +6,111 @@
     <title>Personal Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <!-- Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <header>
         <h1>⚡ Personal Hub</h1>
-        <p id="user-status">Menghubungkan ke Supabase...</p>
+        <p id="user-status">Memeriksa sesi...</p>
+        <button id="btn-logout" onclick="signOut()" style="display: none;">Logout</button>
     </header>
 
-    <!-- Navigation Tabs -->
-    <nav class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('series')">🎬 Series</button>
-        <button class="tab-btn" onclick="switchTab('todo')">✅ To-Do</button>
-        <button class="tab-btn" onclick="switchTab('medical')">🏥 Medis</button>
-        <button class="tab-btn" onclick="switchTab('notes')">📝 Notes</button>
-    </nav>
-
-    <main class="container">
-        <!-- MODUL 1: SERIES TRACKER -->
-        <section id="mod-series" class="module active">
-            <h2>Track Film / Series</h2>
-            <form id="form-series" onsubmit="addSeries(event)">
-                <input type="text" id="series-title" placeholder="Judul Series / Film" required>
+    <!-- HALAMAN LOGIN / REGISTER -->
+    <main id="auth-section" class="container">
+        <div class="auth-card">
+            <h2>Masuk / Daftar</h2>
+            <p>Database diproteksi. Silakan buat akun pribadi Anda.</p>
+            <form onsubmit="handleAuth(event)">
+                <input type="email" id="auth-email" placeholder="Email Anda" required>
+                <input type="password" id="auth-password" placeholder="Password (min. 6 karakter)" required>
                 <div class="row">
-                    <input type="number" id="series-season" placeholder="Season" value="1" min="1">
-                    <input type="number" id="series-episode" placeholder="Episode" value="1" min="1">
+                    <button type="button" class="btn-secondary" onclick="signUp()">Daftar Baru</button>
+                    <button type="submit" class="btn-primary">Masuk</button>
                 </div>
-                <input type="text" id="series-timestamp" placeholder="Timestamp (Misal: 42:15)">
-                <button type="submit" class="btn-primary">+ Simpan Progres</button>
             </form>
-            <div id="list-series" class="card-list"></div>
-        </section>
-
-        <!-- MODUL 2: ADAPTIVE TO-DO LIST -->
-        <section id="mod-todo" class="module">
-            <h2>To-Do List Adaptif</h2>
-            <form id="form-todo" onsubmit="addTodo(event)">
-                <input type="text" id="todo-task" placeholder="Tugas baru..." required>
-                <input type="date" id="todo-date" required>
-                <button type="submit" class="btn-primary">+ Tambah Tugas</button>
-            </form>
-            <div id="list-todo" class="card-list"></div>
-        </section>
-
-        <!-- MODUL 3: REKAM MEDIS -->
-        <section id="mod-medical" class="module">
-            <h2>Rekam Medis (Manusia / Hewan)</h2>
-            <form id="form-medical" onsubmit="addMedical(event)">
-                <input type="text" id="med-name" placeholder="Nama Subjek (Misal: Saya / Catty)" required>
-                <select id="med-type">
-                    <option value="Human">Manusia</option>
-                    <option value="Pet">Hewan Peliharaan</option>
-                </select>
-                <input type="date" id="med-date" required>
-                <textarea id="med-notes" placeholder="Catatan Diagnosa / Keluhan"></textarea>
-                <textarea id="med-prescription" placeholder="Obat / Resep Dokter"></textarea>
-                <button type="submit" class="btn-primary">+ Simpan Rekam Medis</button>
-            </form>
-            <div id="list-medical" class="card-list"></div>
-        </section>
-
-        <!-- MODUL 4: CATATAN UMUM -->
-        <section id="mod-notes" class="module">
-            <h2>Catatan Umum</h2>
-            <form id="form-notes" onsubmit="addNote(event)">
-                <input type="text" id="note-title" placeholder="Judul Catatan" required>
-                <textarea id="note-content" placeholder="Isi catatan..."></textarea>
-                <button type="submit" class="btn-primary">+ Simpan Catatan</button>
-            </form>
-            <div id="list-notes" class="card-list"></div>
-        </section>
+        </div>
     </main>
+
+    <!-- HALAMAN DASHBOARD UTAMA (Disembunyikan sebelum login) -->
+    <div id="dashboard-section" style="display: none;">
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'series')">🎬 Series</button>
+            <button class="tab-btn" onclick="switchTab(event, 'todo')">✅ To-Do</button>
+            <button class="tab-btn" onclick="switchTab(event, 'medical')">🏥 Medis</button>
+            <button class="tab-btn" onclick="switchTab(event, 'notes')">📝 Notes</button>
+        </nav>
+
+        <main class="container">
+            <!-- MODUL 1: SERIES (KONSEP KONTAINER / WADAH) -->
+            <section id="mod-series" class="module active">
+                
+                <!-- Tampilan Master (Daftar Wadah) -->
+                <div id="series-master">
+                    <h2>Wadah Series / Film</h2>
+                    <form onsubmit="createSeriesContainer(event)">
+                        <div class="row">
+                            <input type="text" id="new-series-title" placeholder="Judul Film/Series Baru..." required>
+                            <button type="submit" class="btn-primary">+ Buat</button>
+                        </div>
+                    </form>
+                    <div id="list-series-containers" class="card-list"></div>
+                </div>
+
+                <!-- Tampilan Detail (Isi Wadah & Update Progres) -->
+                <div id="series-detail" style="display: none;">
+                    <button class="btn-secondary" onclick="closeSeriesDetail()" style="margin-bottom: 10px;">⬅ Kembali ke Daftar</button>
+                    <h2 id="active-series-title">Judul Series</h2>
+                    <form onsubmit="updateSeriesProgress(event)">
+                        <div class="row">
+                            <input type="number" id="detail-season" placeholder="Season" min="1" required>
+                            <input type="number" id="detail-episode" placeholder="Episode" min="1" required>
+                        </div>
+                        <input type="text" id="detail-timestamp" placeholder="Timestamp (Misal: 45:20)">
+                        <button type="submit" class="btn-primary">Simpan Progres</button>
+                    </form>
+                </div>
+
+            </section>
+
+            <!-- MODUL 2: TO-DO (Masih format dasar, bisa diubah ke kontainer nanti) -->
+            <section id="mod-todo" class="module">
+                <h2>To-Do List Adaptif</h2>
+                <form id="form-todo" onsubmit="addTodo(event)">
+                    <input type="text" id="todo-task" placeholder="Tugas baru..." required>
+                    <input type="date" id="todo-date" required>
+                    <button type="submit" class="btn-primary">+ Tambah Tugas</button>
+                </form>
+                <div id="list-todo" class="card-list"></div>
+            </section>
+
+            <!-- MODUL 3: REKAM MEDIS -->
+            <section id="mod-medical" class="module">
+                <h2>Rekam Medis</h2>
+                <form id="form-medical" onsubmit="addMedical(event)">
+                    <input type="text" id="med-name" placeholder="Nama Subjek" required>
+                    <select id="med-type">
+                        <option value="Human">Manusia</option>
+                        <option value="Pet">Hewan Peliharaan</option>
+                    </select>
+                    <input type="date" id="med-date" required>
+                    <textarea id="med-notes" placeholder="Catatan Diagnosa"></textarea>
+                    <button type="submit" class="btn-primary">+ Simpan</button>
+                </form>
+                <div id="list-medical" class="card-list"></div>
+            </section>
+
+            <!-- MODUL 4: NOTES -->
+            <section id="mod-notes" class="module">
+                <h2>Catatan Umum</h2>
+                <form id="form-notes" onsubmit="addNote(event)">
+                    <input type="text" id="note-title" placeholder="Judul Catatan" required>
+                    <textarea id="note-content" placeholder="Isi catatan..."></textarea>
+                    <button type="submit" class="btn-primary">+ Simpan</button>
+                </form>
+                <div id="list-notes" class="card-list"></div>
+            </section>
+        </main>
+    </div>
 
     <script src="app.js"></script>
 </body>

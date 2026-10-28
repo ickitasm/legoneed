@@ -1,79 +1,160 @@
-// CONFIGURASI SUPABASE
+// --- 1. KONFIGURASI SUPABASE ---
 const SUPABASE_URL = "https://oojqtaiuqxrkfabrszmo.supabase.co/rest/v1/";
 const SUPABASE_ANON_KEY = "sb_publishable_Dz64PNP292gjLffXo5VXBQ_odKcRbri"; 
-
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener("DOMContentLoaded", () => {
-    const statusEl = document.getElementById("user-status");
-    if (statusEl) statusEl.innerText = "Sistem Terhubung ke Supabase";
-    
-    const todoDateEl = document.getElementById("todo-date");
-    if (todoDateEl) todoDateEl.valueAsDate = new Date();
+let currentUser = null;
+let activeSeriesId = null; // Menyimpan ID wadah series yang sedang dibuka
 
-    loadSeries();
-    loadTodos();
-    loadMedical();
-    loadNotes();
+// --- 2. SISTEM AUTENTIKASI (LOGIN/REGISTER) ---
+document.addEventListener("DOMContentLoaded", async () => {
+    // Cek apakah user sudah login sebelumnya
+    const { data: { session } } = await supabase.auth.getSession();
+    handleSession(session);
+
+    // Pantau perubahan status login
+    supabase.auth.onAuthStateChange((_event, session) => {
+        handleSession(session);
+    });
 });
 
-// FUNGSI GANTI TAB
-function switchTab(tabName) {
-    document.querySelectorAll(".module").forEach(m => m.classList.remove("active"));
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    
-    const targetModule = document.getElementById(`mod-${tabName}`);
-    if (targetModule) targetModule.classList.add("active");
+function handleSession(session) {
+    const authSection = document.getElementById("auth-section");
+    const dashboardSection = document.getElementById("dashboard-section");
+    const btnLogout = document.getElementById("btn-logout");
+    const statusEl = document.getElementById("user-status");
 
-    if (window.event && window.event.target) {
-        window.event.target.classList.add("active");
+    if (session) {
+        currentUser = session.user;
+        authSection.style.display = "none";
+        dashboardSection.style.display = "block";
+        btnLogout.style.display = "inline-block";
+        statusEl.innerText = `Halo, ${currentUser.email}`;
+        
+        // Load semua data setelah dipastikan login
+        loadSeriesContainers();
+        loadTodos();
+        loadMedical();
+        loadNotes();
+    } else {
+        currentUser = null;
+        authSection.style.display = "block";
+        dashboardSection.style.display = "none";
+        btnLogout.style.display = "none";
+        statusEl.innerText = "Sistem Terkunci";
     }
 }
 
-/* --- LOGIKA SERIES TRACKER --- */
-async function addSeries(e) {
-    e.preventDefault();
-    const title = document.getElementById("series-title").value;
-    const season = parseInt(document.getElementById("series-season").value) || 1;
-    const episode = parseInt(document.getElementById("series-episode").value) || 1;
-    const timestamp_marker = document.getElementById("series-timestamp").value;
-
-    await supabase.from("series_tracker").insert([{ title, season, episode, timestamp_marker }]);
-    document.getElementById("form-series").reset();
-    loadSeries();
+async function signUp() {
+    const email = document.getElementById("auth-email").value;
+    const password = document.getElementById("auth-password").value;
+    if (!email || !password) return alert("Isi email dan password!");
+    
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) alert("Gagal Daftar: " + error.message);
+    else alert("Berhasil daftar! Silakan konfirmasi email Anda jika diminta, atau langsung masuk.");
 }
 
-async function loadSeries() {
+async function handleAuth(e) {
+    e.preventDefault();
+    const email = document.getElementById("auth-email").value;
+    const password = document.getElementById("auth-password").value;
+    
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) alert("Gagal Masuk: " + error.message);
+}
+
+async function signOut() {
+    await supabase.auth.signOut();
+}
+
+// --- 3. FUNGSI TAB NAVIGASI ---
+function switchTab(event, tabName) {
+    // Sembunyikan semua modul
+    document.querySelectorAll(".module").forEach(m => m.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    
+    // Tampilkan modul yang dipilih
+    document.getElementById(`mod-${tabName}`).classList.add("active");
+    // Tandai tombol tab yang aktif
+    event.currentTarget.classList.add("active");
+}
+
+// --- 4. LOGIKA SERIES TRACKER (KONSEP KONTAINER) ---
+async function createSeriesContainer(e) {
+    e.preventDefault();
+    const title = document.getElementById("new-series-title").value;
+
+    await supabase.from("series_tracker").insert([{ 
+        user_id: currentUser.id, 
+        title: title, 
+        season: 1, 
+        episode: 1 
+    }]);
+    
+    document.getElementById("new-series-title").value = "";
+    loadSeriesContainers();
+}
+
+async function loadSeriesContainers() {
     const { data } = await supabase.from("series_tracker").select("*").order("updated_at", { ascending: false });
-    const list = document.getElementById("list-series");
+    const list = document.getElementById("list-series-containers");
     if (!list) return;
     list.innerHTML = "";
+    
     data?.forEach(s => {
         list.innerHTML += `
-            <div class="card">
+            <div class="card clickable" onclick="openSeriesDetail('${s.id}', '${s.title}', ${s.season}, ${s.episode}, '${s.timestamp_marker || ""}')">
                 <div class="card-header">
-                    <strong>${s.title}</strong>
-                    <button class="btn-action" onclick="incrementEpisode('${s.id}', ${s.season}, ${s.episode})">+1 Episode</button>
+                    <strong>📁 ${s.title}</strong>
                 </div>
-                <p>Season ${s.season} | Episode ${s.episode} ${s.timestamp_marker ? `(${s.timestamp_marker})` : ""}</p>
+                <p>Terakhir: S${s.season} E${s.episode}</p>
             </div>`;
     });
 }
 
-async function incrementEpisode(id, currentSeason, currentEpisode) {
-    await supabase.from("series_tracker").update({ episode: currentEpisode + 1, updated_at: new Date() }).eq("id", id);
-    loadSeries();
+// Membuka wadah spesifik
+function openSeriesDetail(id, title, season, episode, timestamp) {
+    activeSeriesId = id;
+    document.getElementById("series-master").style.display = "none";
+    document.getElementById("series-detail").style.display = "block";
+    
+    document.getElementById("active-series-title").innerText = title;
+    document.getElementById("detail-season").value = season;
+    document.getElementById("detail-episode").value = episode;
+    document.getElementById("detail-timestamp").value = timestamp;
 }
 
-/* --- LOGIKA ADAPTIVE TO-DO LIST --- */
+function closeSeriesDetail() {
+    activeSeriesId = null;
+    document.getElementById("series-master").style.display = "block";
+    document.getElementById("series-detail").style.display = "none";
+}
+
+async function updateSeriesProgress(e) {
+    e.preventDefault();
+    const season = document.getElementById("detail-season").value;
+    const episode = document.getElementById("detail-episode").value;
+    const timestamp = document.getElementById("detail-timestamp").value;
+
+    await supabase.from("series_tracker")
+        .update({ season, episode, timestamp_marker: timestamp, updated_at: new Date() })
+        .eq("id", activeSeriesId);
+    
+    alert("Progres Tersimpan!");
+    loadSeriesContainers();
+    closeSeriesDetail();
+}
+
+// --- 5. FUNGSI STANDAR (TODO, MEDIS, NOTES) ---
+// (Fungsi-fungsi ini juga disuntikkan user_id agar data tidak ditolak Supabase)
+
 async function addTodo(e) {
     e.preventDefault();
     const task = document.getElementById("todo-task").value;
     const due_date = document.getElementById("todo-date").value;
-
-    await supabase.from("adaptive_todos").insert([{ task, due_date }]);
+    await supabase.from("adaptive_todos").insert([{ user_id: currentUser.id, task, due_date }]);
     document.getElementById("form-todo").reset();
-    document.getElementById("todo-date").valueAsDate = new Date();
     loadTodos();
 }
 
@@ -82,37 +163,16 @@ async function loadTodos() {
     const list = document.getElementById("list-todo");
     if (!list) return;
     list.innerHTML = "";
-    
-    const today = new Date().toISOString().split("T")[0];
-
     data?.forEach(t => {
-        const isOverdue = t.due_date < today && !t.is_completed;
-        list.innerHTML += `
-            <div class="card ${isOverdue ? "overdue" : ""}">
-                <div class="card-header">
-                    <span style="${t.is_completed ? "text-decoration: line-through;" : ""}">${t.task}</span>
-                    <button class="btn-action" onclick="toggleTodo('${t.id}', ${!t.is_completed})">${t.is_completed ? "Batal" : "Selesai"}</button>
-                </div>
-                <small>${t.due_date} ${isOverdue ? "(Terlewat - Adaptif)" : ""}</small>
-            </div>`;
+        list.innerHTML += `<div class="card"><strong>${t.task}</strong> - ${t.due_date}</div>`;
     });
 }
 
-async function toggleTodo(id, status) {
-    await supabase.from("adaptive_todos").update({ is_completed: status }).eq("id", id);
-    loadTodos();
-}
-
-/* --- LOGIKA REKAM MEDIS --- */
 async function addMedical(e) {
     e.preventDefault();
     const subject_name = document.getElementById("med-name").value;
-    const subject_type = document.getElementById("med-type").value;
     const record_date = document.getElementById("med-date").value;
-    const diagnosis_notes = document.getElementById("med-notes").value;
-    const medication = document.getElementById("med-prescription").value;
-
-    await supabase.from("medical_records").insert([{ subject_name, subject_type, record_date, diagnosis_notes, medication }]);
+    await supabase.from("medical_records").insert([{ user_id: currentUser.id, subject_name, record_date }]);
     document.getElementById("form-medical").reset();
     loadMedical();
 }
@@ -123,22 +183,15 @@ async function loadMedical() {
     if (!list) return;
     list.innerHTML = "";
     data?.forEach(m => {
-        list.innerHTML += `
-            <div class="card">
-                <strong>${m.subject_name} (${m.subject_type})</strong> - <small>${m.record_date}</small>
-                <p><strong>Diagnosa:</strong> ${m.diagnosis_notes || "-"}</p>
-                <p><strong>Obat:</strong> ${m.medication || "-"}</p>
-            </div>`;
+        list.innerHTML += `<div class="card"><strong>${m.subject_name}</strong> - ${m.record_date}</div>`;
     });
 }
 
-/* --- LOGIKA NOTES --- */
 async function addNote(e) {
     e.preventDefault();
     const title = document.getElementById("note-title").value;
     const content = document.getElementById("note-content").value;
-
-    await supabase.from("general_notes").insert([{ title, content }]);
+    await supabase.from("general_notes").insert([{ user_id: currentUser.id, title, content }]);
     document.getElementById("form-notes").reset();
     loadNotes();
 }
@@ -149,10 +202,6 @@ async function loadNotes() {
     if (!list) return;
     list.innerHTML = "";
     data?.forEach(n => {
-        list.innerHTML += `
-            <div class="card">
-                <strong>${n.title}</strong>
-                <p>${n.content || ""}</p>
-            </div>`;
+        list.innerHTML += `<div class="card"><strong>${n.title}</strong><p>${n.content}</p></div>`;
     });
 }
