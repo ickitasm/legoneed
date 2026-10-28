@@ -1,17 +1,19 @@
 // --- 1. KONFIGURASI SUPABASE ---
 const SUPABASE_URL = "https://oojqtaiuqxrkfabrszmo.supabase.co/rest/v1/";
 const SUPABASE_ANON_KEY = "sb_publishable_Dz64PNP292gjLffXo5VXBQ_odKcRbri"; 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Menggunakan 'supabaseClient' agar tidak bertabrakan dengan variabel global 'supabase' dari CDN
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let activeSeriesId = null;
 
 // --- 2. SISTEM AUTENTIKASI ---
 document.addEventListener("DOMContentLoaded", async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     handleSession(session);
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
         handleSession(session);
     });
 });
@@ -47,7 +49,7 @@ async function signUp() {
     const password = document.getElementById("auth-password").value;
     if (!email || !password) return alert("Isi email dan password!");
     
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabaseClient.auth.signUp({ email, password });
     if (error) alert("Gagal Daftar: " + error.message);
     else alert("Berhasil! Silakan masuk.");
 }
@@ -57,17 +59,17 @@ async function handleAuth(e) {
     const email = document.getElementById("auth-email").value;
     const password = document.getElementById("auth-password").value;
     
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) alert("Gagal Masuk: " + error.message);
 }
 
 async function signOut() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
 }
 
 async function loginGoogle() {
     try {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: window.location.origin
@@ -93,7 +95,7 @@ async function createSeriesContainer(e) {
     e.preventDefault();
     const title = document.getElementById("new-series-title").value;
 
-    await supabase.from("series_tracker").insert([{ 
+    await supabaseClient.from("series_tracker").insert([{ 
         user_id: currentUser.id, 
         title: title, 
         season: 1, 
@@ -105,7 +107,7 @@ async function createSeriesContainer(e) {
 }
 
 async function loadSeriesContainers() {
-    const { data } = await supabase.from("series_tracker").select("*").order("updated_at", { ascending: false });
+    const { data } = await supabaseClient.from("series_tracker").select("*").order("updated_at", { ascending: false });
     const list = document.getElementById("list-series-containers");
     if (!list) return;
     list.innerHTML = "";
@@ -144,7 +146,7 @@ async function updateSeriesProgress(e) {
     const episode = document.getElementById("detail-episode").value;
     const timestamp = document.getElementById("detail-timestamp").value;
 
-    await supabase.from("series_tracker")
+    await supabaseClient.from("series_tracker")
         .update({ season, episode, timestamp_marker: timestamp, updated_at: new Date() })
         .eq("id", activeSeriesId);
     
@@ -158,13 +160,13 @@ async function addTodo(e) {
     e.preventDefault();
     const task = document.getElementById("todo-task").value;
     const due_date = document.getElementById("todo-date").value;
-    await supabase.from("adaptive_todos").insert([{ user_id: currentUser.id, task, due_date }]);
+    await supabaseClient.from("adaptive_todos").insert([{ user_id: currentUser.id, task, due_date }]);
     document.getElementById("form-todo").reset();
     loadTodos();
 }
 
 async function loadTodos() {
-    const { data } = await supabase.from("adaptive_todos").select("*").order("due_date", { ascending: true });
+    const { data } = await supabaseClient.from("adaptive_todos").select("*").order("due_date", { ascending: true });
     const list = document.getElementById("list-todo");
     if (!list) return;
     list.innerHTML = "";
@@ -177,13 +179,13 @@ async function addMedical(e) {
     e.preventDefault();
     const subject_name = document.getElementById("med-name").value;
     const record_date = document.getElementById("med-date").value;
-    await supabase.from("medical_records").insert([{ user_id: currentUser.id, subject_name, record_date }]);
+    await supabaseClient.from("medical_records").insert([{ user_id: currentUser.id, subject_name, record_date }]);
     document.getElementById("form-medical").reset();
     loadMedical();
 }
 
 async function loadMedical() {
-    const { data } = await supabase.from("medical_records").select("*").order("record_date", { ascending: false });
+    const { data } = await supabaseClient.from("medical_records").select("*").order("record_date", { ascending: false });
     const list = document.getElementById("list-medical");
     if (!list) return;
     list.innerHTML = "";
@@ -196,13 +198,13 @@ async function addNote(e) {
     e.preventDefault();
     const title = document.getElementById("note-title").value;
     const content = document.getElementById("note-content").value;
-    await supabase.from("general_notes").insert([{ user_id: currentUser.id, title, content }]);
+    await supabaseClient.from("general_notes").insert([{ user_id: currentUser.id, title, content }]);
     document.getElementById("form-notes").reset();
     loadNotes();
 }
 
 async function loadNotes() {
-    const { data } = await supabase.from("general_notes").select("*").order("updated_at", { ascending: false });
+    const { data } = await supabaseClient.from("general_notes").select("*").order("updated_at", { ascending: false });
     const list = document.getElementById("list-notes");
     if (!list) return;
     list.innerHTML = "";
