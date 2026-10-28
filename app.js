@@ -4,15 +4,13 @@ const SUPABASE_ANON_KEY = "sb_publishable_Dz64PNP292gjLffXo5VXBQ_odKcRbri";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
-let activeSeriesId = null; // Menyimpan ID wadah series yang sedang dibuka
+let activeSeriesId = null;
 
-// --- 2. SISTEM AUTENTIKASI (LOGIN/REGISTER) ---
+// --- 2. SISTEM AUTENTIKASI ---
 document.addEventListener("DOMContentLoaded", async () => {
-    // Cek apakah user sudah login sebelumnya
     const { data: { session } } = await supabase.auth.getSession();
     handleSession(session);
 
-    // Pantau perubahan status login
     supabase.auth.onAuthStateChange((_event, session) => {
         handleSession(session);
     });
@@ -31,7 +29,6 @@ function handleSession(session) {
         btnLogout.style.display = "inline-block";
         statusEl.innerText = `Halo, ${currentUser.email}`;
         
-        // Load semua data setelah dipastikan login
         loadSeriesContainers();
         loadTodos();
         loadMedical();
@@ -52,7 +49,7 @@ async function signUp() {
     
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) alert("Gagal Daftar: " + error.message);
-    else alert("Berhasil daftar! Silakan konfirmasi email Anda jika diminta, atau langsung masuk.");
+    else alert("Berhasil! Silakan masuk.");
 }
 
 async function handleAuth(e) {
@@ -68,19 +65,30 @@ async function signOut() {
     await supabase.auth.signOut();
 }
 
+async function loginGoogle() {
+    try {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin
+            }
+        });
+        if (error) alert("Error Google Login: " + error.message);
+    } catch (err) {
+        alert("Terjadi kesalahan: " + err.message);
+    }
+}
+
 // --- 3. FUNGSI TAB NAVIGASI ---
 function switchTab(event, tabName) {
-    // Sembunyikan semua modul
     document.querySelectorAll(".module").forEach(m => m.classList.remove("active"));
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
     
-    // Tampilkan modul yang dipilih
     document.getElementById(`mod-${tabName}`).classList.add("active");
-    // Tandai tombol tab yang aktif
     event.currentTarget.classList.add("active");
 }
 
-// --- 4. LOGIKA SERIES TRACKER (KONSEP KONTAINER) ---
+// --- 4. LOGIKA SERIES TRACKER (MASTER-DETAIL) ---
 async function createSeriesContainer(e) {
     e.preventDefault();
     const title = document.getElementById("new-series-title").value;
@@ -113,7 +121,6 @@ async function loadSeriesContainers() {
     });
 }
 
-// Membuka wadah spesifik
 function openSeriesDetail(id, title, season, episode, timestamp) {
     activeSeriesId = id;
     document.getElementById("series-master").style.display = "none";
@@ -147,8 +154,6 @@ async function updateSeriesProgress(e) {
 }
 
 // --- 5. FUNGSI STANDAR (TODO, MEDIS, NOTES) ---
-// (Fungsi-fungsi ini juga disuntikkan user_id agar data tidak ditolak Supabase)
-
 async function addTodo(e) {
     e.preventDefault();
     const task = document.getElementById("todo-task").value;
@@ -204,21 +209,4 @@ async function loadNotes() {
     data?.forEach(n => {
         list.innerHTML += `<div class="card"><strong>${n.title}</strong><p>${n.content}</p></div>`;
     });
-}
-
-async function loginGoogle() {
-    console.log("Tombol Google berhasil ditekan!"); // Ini untuk mengetes respons
-    try {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: window.location.origin
-            }
-        });
-        if (error) {
-            alert("Error Google Login: " + error.message);
-        }
-    } catch (err) {
-        alert("Terjadi kesalahan sistem: " + err.message);
-    }
 }
