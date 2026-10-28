@@ -1,6 +1,6 @@
 // --- 1. KONFIGURASI SUPABASE ---
 const SUPABASE_URL = "https://oojqtaiuqxrkfabrszmo.supabase.co/rest/v1/";
-const SUPABASE_ANON_KEY = "sb_publishable_Dz64PNP292gjLffXo5VXBQ_odKcRbri"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vanF0YWl1cXhya2ZhYnJzem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxODY4MjUsImV4cCI6MjEwODc2MjgyNX0.4UFFT05GrBCJ1xpq4YYrlStaIxC8AOvaP4rg-x6nhAQ"; 
 
 // Menggunakan 'supabaseClient' agar tidak bertabrakan dengan variabel global 'supabase' dari CDN
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
