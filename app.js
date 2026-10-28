@@ -205,3 +205,13 @@ async function loadNotes() {
         list.innerHTML += `<div class="card"><strong>${n.title}</strong><p>${n.content}</p></div>`;
     });
 }
+
+async function loginGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.origin
+        }
+    });
+    if (error) alert("Error Google Login: " + error.message);
+}

@@ -23,6 +23,9 @@
             <form onsubmit="handleAuth(event)">
                 <input type="email" id="auth-email" placeholder="Email Anda" required>
                 <input type="password" id="auth-password" placeholder="Password (min. 6 karakter)" required>
+                <button type="button" onclick="loginGoogle()" style="margin-top:10px; width:100%; background-color:#db4437; color:white; padding:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">
+                    Masuk dengan Google
+                </button>
                 <div class="row">
                     <button type="button" class="btn-secondary" onclick="signUp()">Daftar Baru</button>
                     <button type="submit" class="btn-primary">Masuk</button>
